@@ -8,7 +8,7 @@ For help and support, hit me up at [discord.gg/stratsco](https://discord.gg/stra
 1. Clone the repository: `git clone https://github.com/vocino/stratsco-eveonline.git`
 2. Install dependencies: `npm install`
 3. Set up environment variables: Create a `.env` file and define the necessary environment variables (e.g., `CLIENT_ID`, `GUILD_ID`, `BOT_TOKEN`).
-4. Start the bot: Run `node bot.js` or use a process manager like PM2.
+4. Start the bot: Run `npm start` or use a process manager like PM2.
 
 ## Usage
 
