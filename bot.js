@@ -1,48 +1,79 @@
-const Discord = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
 const axios = require('axios');
 
-const client = new Discord.Client();
-const prefix = '!'; // Command prefix
+const clientId = 'YOUR_CLIENT_ID'; // Replace with your bot's client ID
+const guildId = 'YOUR_GUILD_ID'; // Replace with your guild ID
+const token = 'YOUR_DISCORD_BOT_TOKEN'; // Replace with your bot token
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-});
+const commands = [
+  {
+    name: 'character',
+    description: 'Get EVE Online character information',
+    options: [
+      {
+        name: 'name',
+        type: 'STRING',
+        description: 'Character name',
+        required: true,
+      },
+    ],
+  },
+];
 
-client.on('message', async (message) => {
-  if (!message.content.startsWith(prefix) || message.author.bot) return;
+const rest = new REST({ version: '9' }).setToken(token);
 
-  const args = message.content.slice(prefix.length).trim().split(' ');
-  const command = args.shift().toLowerCase();
+(async () => {
+  try {
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
 
-  if (command === 'character') {
-    // Check if the argument is provided
-    if (!args.length) {
-      return message.reply('Please provide a character name.');
-    }
+    const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
-    try {
-      const characterName = args.join(' ');
-      const characterInfo = await getCharacterInfo(characterName);
+    client.once('ready', () => {
+      console.log(`Logged in as ${client.user.tag}`);
+    });
 
-      // Process and display the character information
-      // Customize this part based on your bot's functionality
+    client.on('interactionCreate', async (interaction) => {
+      if (!interaction.isCommand()) return;
 
-      message.channel.send(`Character Name: ${characterInfo.name}`);
-      message.channel.send(`Character ID: ${characterInfo.character_id}`);
-      // Add more fields as needed
-    } catch (error) {
-      console.error('Error retrieving character information:', error);
-      message.reply('An error occurred while retrieving character information.');
-    }
+      const { commandName, options } = interaction;
+
+      if (commandName === 'character') {
+        const characterName = options.getString('name');
+
+        try {
+          const characterInfo = await getCharacterInfo(characterName);
+
+          // Process and display the character information
+          // Customize this part based on your bot's functionality
+
+          await interaction.reply(`Character Name: ${characterInfo.name}`);
+          await interaction.followUp(`Character ID: ${characterInfo.character_id}`);
+          // Add more fields as needed
+        } catch (error) {
+          console.error('Error retrieving character information:', error);
+          await interaction.reply('An error occurred while retrieving character information.');
+        }
+      }
+    });
+
+    await client.login(token);
+  } catch (error) {
+    console.error('Error registering slash commands:', error);
   }
-});
+})();
 
 async function getCharacterInfo(characterName) {
   try {
-    const response = await axios.get(`https://esi.evetech.net/latest/search/?categories=character&datasource=tranquility&language=en&search=${characterName}&strict=true`);
+    const response = await axios.get(
+      `https://esi.evetech.net/latest/search/?categories=character&datasource=tranquility&language=en&search=${characterName}&strict=true`
+    );
     const characterId = response.data.character[0];
 
-    const characterResponse = await axios.get(`https://esi.evetech.net/latest/characters/${characterId}/?datasource=tranquility`);
+    const characterResponse = await axios.get(
+      `https://esi.evetech.net/latest/characters/${characterId}/?datasource=tranquility`
+    );
     const characterInfo = characterResponse.data;
 
     return characterInfo;
@@ -50,5 +81,3 @@ async function getCharacterInfo(characterName) {
     throw error;
   }
 }
-
-client.login('YOUR_DISCORD_BOT_TOKEN');
